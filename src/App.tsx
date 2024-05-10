@@ -6,10 +6,17 @@
  */
 
 import React from 'react';
-import HomeScreen from './screens/HomeScreen';
+import {Provider} from 'react-redux';
 
-function App(): React.JSX.Element {
-  return <HomeScreen />;
+import HomeScreen from './screens/HomeScreen';
+import store from './service/configureStore';
+
+function App() {
+  return (
+    <Provider store={store}>
+      <HomeScreen />
+    </Provider>
+  );
 }
 
 export default App;

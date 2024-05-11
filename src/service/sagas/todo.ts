@@ -31,8 +31,8 @@ function* createTodoSaga(action: PayloadAction<TodoType>) {
   try {
     const res: AxiosResponse = yield call(createTodoAPI, action.payload);
     if (res.data.id) {
-      yield put(getTodoList());
       yield put(createTodoSuccess());
+      yield put(getTodoList());
     } else {
       yield put(createTodoFail());
     }
@@ -46,8 +46,9 @@ function* createTodoSaga(action: PayloadAction<TodoType>) {
 function* deleteTodoSaga(action: PayloadAction<string>) {
   try {
     const res: AxiosResponse = yield call(deleteTodoAPI, action.payload);
-    if (res.data.length > 0) {
+    if (res.data.id) {
       yield put(deleteTodoSuccess());
+      yield put(getTodoList());
     } else {
       yield put(deleteTodoFail());
     }

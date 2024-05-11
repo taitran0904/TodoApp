@@ -28,8 +28,7 @@ const TodoSlice = createSlice({
       state.actionLoading = 'createTodoLoading';
     },
 
-    createTodoSuccess(state) {
-      console.log('sdcsdcsdcsd');
+    createTodoSuccess(state, _action: PayloadAction<string>) {
       state.actionLoading = 'createTodoSuccess';
     },
 
@@ -38,15 +37,15 @@ const TodoSlice = createSlice({
     },
 
     deleteTodo(state, _action: PayloadAction<string>) {
-      state.loading = true;
+      state.actionLoading = 'deleteTodoLoading';
     },
 
     deleteTodoSuccess(state) {
-      state.loading = false;
+      state.actionLoading = 'deleteTodoSuccess';
     },
 
     deleteTodoFail(state) {
-      state.loading = false;
+      state.actionLoading = 'deleteTodoFail';
     },
 
     hideloading(state) {

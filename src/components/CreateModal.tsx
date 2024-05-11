@@ -2,6 +2,8 @@ import * as React from 'react';
 import {
   ActivityIndicator,
   Dimensions,
+  FlatList,
+  Keyboard,
   StyleSheet,
   Text,
   TextInput,
@@ -9,14 +11,16 @@ import {
   View,
 } from 'react-native';
 import CustomModal from './CustomModal';
-import {Dispatch, SetStateAction} from 'react';
+import {Dispatch, MutableRefObject, SetStateAction} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import {createTodo, getTodoList} from '../service/slice/TodoSlice';
+import {createTodo, createTodoSuccess} from '../service/slice/TodoSlice';
 import {RootState} from '../service/configureStore';
+import {TodoType} from '../types/todo';
 
 type Props = {
   visible: boolean;
   setVisible: Dispatch<SetStateAction<boolean>>;
+  refFlatList: MutableRefObject<FlatList<TodoType> | undefined>;
 };
 
 const priorityData = [
@@ -42,19 +46,33 @@ const CreateModal: React.FC<Props> = props => {
 
   const dispatch = useDispatch();
 
-  const {visible, setVisible} = props;
+  const {visible, setVisible, refFlatList} = props;
 
-  const loading = useSelector((state: RootState) => state.todo.actionLoading);
+  const actionLoading = useSelector(
+    (state: RootState) => state.todo.actionLoading,
+  );
 
   const [priority, setPriority] = React.useState<0 | 1 | 2>(0);
   const [task, setTask] = React.useState<string>('');
+
+  React.useEffect(() => {
+    if (actionLoading === 'createTodoSuccess') {
+      dispatch(createTodoSuccess(''));
+      setVisible(false);
+      setPriority(0);
+      setTask('');
+      setTimeout(() => {
+        refFlatList.current?.scrollToEnd();
+      }, 500);
+    }
+  }, [actionLoading]);
 
   return (
     <CustomModal
       visible={visible}
       setVisible={setVisible}
-      w={0.8 * width}
-      h={260}>
+      w={0.9 * width}
+      h={270}>
       <View style={{padding: 16}}>
         <View>
           <Text style={styles.label}>Công việc</Text>
@@ -78,7 +96,7 @@ const CreateModal: React.FC<Props> = props => {
                   },
                 ]}>
                 <View style={[styles.dot, {backgroundColor: item.color}]} />
-                <Text style={styles.label}>{item.label}</Text>
+                <Text style={styles.text}>{item.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -87,29 +105,30 @@ const CreateModal: React.FC<Props> = props => {
           <TouchableOpacity
             style={[styles.button, {backgroundColor: '#e1e1e1'}]}
             onPress={() => setVisible(false)}>
-            <Text style={styles.label}>Trở về</Text>
+            <Text style={styles.text}>Trở về</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.button, {backgroundColor: '#7f51c8'}]}
-            onPress={() =>
+            onPress={() => {
+              Keyboard.dismiss();
               dispatch(
                 createTodo({
                   task: task,
                   priority: priority,
                 }),
-              )
-            }>
+              );
+            }}>
             <Text
               style={[
-                styles.label,
+                styles.text,
                 {
                   color: '#fff',
-                  marginRight: loading === 'createTodoLoading' ? 10 : 0,
+                  marginRight: actionLoading === 'createTodoLoading' ? 10 : 0,
                 },
               ]}>
               Thêm
             </Text>
-            {loading === 'createTodoLoading' && (
+            {actionLoading === 'createTodoLoading' && (
               <ActivityIndicator size="small" color={'#fff'} />
             )}
           </TouchableOpacity>
@@ -130,8 +149,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     marginTop: 8,
     marginBottom: 15,
+    fontSize: 16,
   },
   label: {
+    fontSize: 16,
+    color: '#000',
+    fontWeight: 'bold',
+  },
+  text: {
     fontSize: 14,
     color: '#000',
   },

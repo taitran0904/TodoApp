@@ -6,25 +6,34 @@ import {
   TouchableOpacity,
   FlatList,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import AntIcon from 'react-native-vector-icons/AntDesign';
 import {useDispatch, useSelector} from 'react-redux';
 
-import {CreateModal} from '../components';
-import {getTodoList} from '../service/slice/TodoSlice';
+import {CreateModal, SkeletonItem} from '../components';
+import {deleteTodo, getTodoList} from '../service/slice/TodoSlice';
 import {TodoType} from '../types/todo';
 import {RootState} from '../service/configureStore';
 
 const HomeScreen: React.FC = () => {
   const dispatch = useDispatch();
 
+  const ref = React.useRef<FlatList<TodoType>>(null);
+
   const todoList = useSelector((state: RootState) => state.todo.todoList);
-  const loading = useSelector((state: RootState) => state.todo.actionLoading);
+  const actionLoading = useSelector(
+    (state: RootState) => state.todo.actionLoading,
+  );
+  const loadingList = useSelector((state: RootState) => state.todo.loading);
 
   const [visible, setVisible] = React.useState<boolean>(false);
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshing, setRefreshing] = React.useState<boolean>(false);
+  const [selectedItem, setSelectedItem] = React.useState<string>();
+  const [isFirstLoad, setFirstLoad] = React.useState<boolean>(false);
 
   React.useEffect(() => {
+    setFirstLoad(true);
     dispatch(getTodoList());
   }, []);
 
@@ -39,43 +48,67 @@ const HomeScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Todo</Text>
-          <TouchableOpacity>
-            <Text>cdc</Text>
-          </TouchableOpacity>
         </View>
-        <FlatList
-          data={todoList}
-          keyExtractor={(item: TodoType) => `${item.id}`}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          renderItem={({item}: {item: TodoType}) => {
-            let priorityColor =
-              item.priority === 0
-                ? 'green'
-                : item.priority === 1
-                ? 'yellow'
-                : 'red';
-            return (
-              <View
-                style={[
-                  styles.itemContainer,
-                  {backgroundColor: priorityColor},
-                ]}>
-                <View style={styles.item}>
-                  <Text>{item.task}</Text>
+        {loadingList && isFirstLoad ? (
+          <FlatList
+            data={[1, 2, 3, 4, 5]}
+            keyExtractor={(item: number) => `${item}`}
+            renderItem={() => <SkeletonItem />}
+          />
+        ) : (
+          <FlatList
+            ref={ref}
+            data={todoList}
+            keyExtractor={(item: TodoType) => `${item.id}`}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            style={styles.list}
+            renderItem={({item}: {item: TodoType}) => {
+              let priorityColor =
+                item.priority === 0
+                  ? 'green'
+                  : item.priority === 1
+                  ? 'yellow'
+                  : 'red';
+              return (
+                <View
+                  style={[
+                    styles.itemContainer,
+                    {backgroundColor: priorityColor},
+                  ]}>
+                  <View style={styles.item}>
+                    <Text style={styles.text}>{item.task}</Text>
+                    <TouchableOpacity
+                      hitSlop={5}
+                      onPress={() => {
+                        setSelectedItem(item.id);
+                        dispatch(deleteTodo(item.id));
+                      }}>
+                      {actionLoading === 'deleteTodoLoading' &&
+                      selectedItem === item.id ? (
+                        <ActivityIndicator size="small" color={'#7f51c8'} />
+                      ) : (
+                        <AntIcon name="delete" size={20} color={'#7f51c8'} />
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            );
-          }}
-        />
+              );
+            }}
+          />
+        )}
       </View>
       <TouchableOpacity
         style={styles.floaButton}
         onPress={() => setVisible(true)}>
         <AntIcon name="plus" color="#fff" size={20} />
       </TouchableOpacity>
-      <CreateModal visible={visible} setVisible={setVisible} />
+      <CreateModal
+        refFlatList={ref}
+        visible={visible}
+        setVisible={setVisible}
+      />
     </>
   );
 };
@@ -99,6 +132,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
   },
+  list: {marginBottom: 20},
   floaButton: {
     backgroundColor: '#7f51c8',
     position: 'absolute',
@@ -116,6 +150,13 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     backgroundColor: '#fff',
     paddingVertical: 15,
-    paddingHorizontal: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    flexDirection: 'row',
+  },
+  text: {
+    fontSize: 16,
+    color: '#000',
+    flex: 1,
   },
 });
